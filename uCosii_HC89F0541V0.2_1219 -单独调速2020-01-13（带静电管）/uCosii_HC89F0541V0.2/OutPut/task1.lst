@@ -1,0 +1,786 @@
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE TASK1
+OBJECT MODULE PLACED IN .\OutPut\task1.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Source\task1.c LARGE OPTIMIZE(9,SPEED) BROWSE INCDIR(.\Source;.\uCosii) 
+                    -DEBUG OBJECTEXTEND PRINT(.\OutPut\task1.lst) TABS(2) OBJECT(.\OutPut\task1.obj)
+
+line level    source
+
+   1          #include "includes.h"
+   2          #include "Source\task1.h"
+   3          #include "Source\task3.h"
+   4          unsigned char guc_Uartflag = 0;     //UART判断标志位
+   5          unsigned char guc_Uartcnt = 0;        //UART计数使用
+   6          unsigned char guc_Uartbuf_a[12] = {0,0,0,0,0,0,0,0,0,0,0,0};  //用于存放接收收据
+   7          unsigned char guc_i;          //发送数据计数  
+   8          bool wifi_first =0;//第一次开启 发送00  第二次发送01
+   9          
+  10          
+  11          int wifi_num_flag = 0;//呼吸指令
+  12          INT8U f1_wifi_mode=0;//控制方向时机器不会工作
+  13          //f2
+  14          extern INT8U ZJ_wifi_flag;//自检模式下测试wifi
+  15          extern int f2_wifi_num ;//1000发一次状态                                   
+  16          extern INT8U f2_mode ;//模式0停止 1弓形 2回充 3充电 4快闪 5慢闪 6异常 7方向按键 10定点 11待机 12充电下座 1
+             -3延边
+  17          extern INT8U  BUZZER_flag ;//蜂鸣器
+  18          extern INT8U  BUZZER_num ;//蜂鸣器计数器，用于响应时间                                   
+  19          extern int f2_chongdian_flag1 ;//充电红跳绿                                  
+  20          extern INT8U f2_dianliang_wifi ;//电量 0-100          
+  21          extern INT8U error_flag ;//标志,1碰撞，2悬空，3边刷，4风机，5左轮，6右轮，7电量
+  22          extern INT8U error_fengji ;//计数，风机异常
+  23          
+  24          
+  25          
+  26          //f3                                   
+  27          extern bool f3_flag0 ;//按键启动标志，一般用于按键按下执行第一次操作                                   
+  28          extern INT8U  f3_flag1 ;//记录标志，一般用于第一次复位
+  29          
+  30          extern int f3_flag ;//步骤运行，共100多步骤
+  31          extern INT32U f3_fengji ;
+  32          extern bool fan_open ;//风机开启1,关闭0
+  33          
+  34          //发送指令 1快闪 2慢闪 3测试wifi
+  35          INT8U f1_wifi_num = 0;
+  36          INT8U f1_wifi_i1 = 0;//发送dp数据
+  37          INT8U f1_wifi_i2 = 0;//发送dp数据
+  38          
+  39          //风机
+  40          INT8U f1_fj_xili =0;//风机吸力 0强 1中 2若
+  41          INT32U f1_fj_xili1 =1000;//风机转速10000 8000 6000
+  42          INT8U f1_fj_xili2 =0;//风机转速
+  43          
+  44          INT16U f1_fj_num = 0;//风机异常计数器
+  45          
+  46          int f1_i=0;
+  47          void Task1(void *ppdata) reentrant
+  48          {
+  49   1      
+  50   1      
+  51   1        ppdata = ppdata;
+  52   1      //  OSTimeDly(100);
+  53   1      
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 2   
+
+  54   1        while(1){
+  55   2          OSTimeDly(5); 
+  56   2      
+  57   2            
+  58   2          if(f2_mode==11)
+  59   2          {
+  60   3            for(f1_i=0;f1_i<12;f1_i++)
+  61   3            {
+  62   4              
+  63   4              guc_Uartbuf_a[f1_i]=0;
+  64   4            }
+  65   3            
+  66   3            guc_Uartcnt=0;
+  67   3            SCON &=~ 0x70;      
+  68   3          }
+  69   2          else
+  70   2          {
+  71   3      /***********************接收&处理指令函数*******************************/   
+  72   3          uart1_data();         //接收&处理指令函数
+  73   3      /***********************定时发送扫地机状态******************************/       
+  74   3          f1_timing_case();     //定时发送扫地机状态    
+  75   3          
+  76   3          
+  77   3          }
+  78   2      
+  79   2      /***********************风机转速*****************************************/      
+  80   2          f1_fan_open() ; 
+  81   2          
+  82   2          
+  83   2          
+  84   2      
+  85   2          
+  86   2      } }
+  87          
+  88          
+  89          
+  90          
+  91          
+  92          void f1_fan_open(void)  //风机开启
+  93          {
+  94   1      if(f1_fj_num<1000)//风机计数器
+  95   1      {
+  96   2        f1_fj_num++;
+  97   2        error_fengji = 0;//风机异常
+  98   2      }
+  99   1        
+ 100   1      //if((f2_mode==1||f2_mode==10||f2_mode==13))//风机延迟2秒启动
+ 101   1      if(fan_open)//风机延迟2秒启动
+ 102   1      {
+ 103   2      //f1_fj_xili =0;//风机吸力 0强 1中 2弱
+ 104   2      switch(f1_fj_xili)
+ 105   2      {
+ 106   3        case 0://强
+ 107   3          f1_fj_xili1=1000;
+ 108   3          break;
+ 109   3        case 1://中
+ 110   3          f1_fj_xili1=850;
+ 111   3          break;
+ 112   3        case 2://弱
+ 113   3          f1_fj_xili1=700;
+ 114   3          break;
+ 115   3      
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 3   
+
+ 116   3      }
+ 117   2        
+ 118   2      if(f1_fj_xili1<550)
+ 119   2        error_fengji = 0;//风机异常
+ 120   2      if(f3_fengji<f1_fj_xili1)//启动 
+ 121   2      {
+ 122   3      
+ 123   3          error_fengji = 0;//风机异常
+ 124   3        f3_fengji++;
+ 125   3      }     
+ 126   2      
+ 127   2      else
+ 128   2        f3_fengji=f1_fj_xili1;
+ 129   2      
+ 130   2      
+ 131   2      if(f3_fengji<400)//首次启动
+ 132   2        f3_fengji=400;
+ 133   2      
+ 134   2      
+ 135   2      if(f1_fj_xili==0)//强力
+ 136   2      {
+ 137   3        PWM2DH = (f3_fengji*2)/255;//左轮高位PWM
+ 138   3        PWM2DL = (f3_fengji*2)%255;//左轮低位PWM
+ 139   3        
+ 140   3        
+ 141   3        
+ 142   3        
+ 143   3      //  if( (f3_fengji%10) < (f3_fengji/100) )
+ 144   3      //    fan =1;
+ 145   3      //  else
+ 146   3      //    fan =0;
+ 147   3      //  if(f3_fengji>=1000)//100
+ 148   3      //    fan =1;
+ 149   3      }
+ 150   2      else//中以及低
+ 151   2      {
+ 152   3        
+ 153   3          PWM2DH = (f3_fengji*2)/255;//左轮高位PWM
+ 154   3          PWM2DL = (f3_fengji*2)%255;//左轮低位PWM
+ 155   3        
+ 156   3        
+ 157   3        
+ 158   3      //  if(f3_fengji<f1_fj_xili1)//启动
+ 159   3      //  {
+ 160   3      //    if( (f3_fengji%10) < (f3_fengji/100) )
+ 161   3      //      fan =1;
+ 162   3      //    else
+ 163   3      //      fan =0;
+ 164   3      //    
+ 165   3      //  }
+ 166   3      //  else//保持
+ 167   3      //  {
+ 168   3      //    f1_fj_xili2++;
+ 169   3      //    if(f1_fj_xili2<f1_fj_xili1/100)
+ 170   3      //      fan =1;
+ 171   3      //    else
+ 172   3      //      fan =0;
+ 173   3      //    if(f1_fj_xili2==10)
+ 174   3      //      f1_fj_xili2=0;
+ 175   3      //  
+ 176   3      //  }
+ 177   3      }
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 4   
+
+ 178   2        
+ 179   2      
+ 180   2        if(f3_fengji>=10000)//100
+ 181   2        {
+ 182   3          PWM2DH =  0x07;//左轮高位PWM
+ 183   3          PWM2DL =  0xff;//左轮低位PWM
+ 184   3        
+ 185   3        
+ 186   3        
+ 187   3        }
+ 188   2      //    fan =1;
+ 189   2      }
+ 190   1      else
+ 191   1        {
+ 192   2          f1_fj_num = 0;//风机异常计数器
+ 193   2          PWM2DH = 0;//左轮高位PWM
+ 194   2          PWM2DL = 0;//左轮低位PWM
+ 195   2          
+ 196   2          
+ 197   2      //    fan = 0;
+ 198   2        }
+ 199   1          
+ 200   1      
+ 201   1      
+ 202   1      
+ 203   1      }
+ 204          
+ 205          
+ 206          
+ 207          
+ 208          
+ 209          
+ 210          
+ 211          
+ 212          
+ 213          void f1_timing_case(void) //定时发送扫地机状态
+ 214          {
+ 215   1          wifi_num_flag++;
+ 216   1          if(wifi_num_flag>2000)
+ 217   1          {
+ 218   2            wifi_num_flag=0;
+ 219   2            guc_Uartflag = 0;
+ 220   2            guc_Uartcnt = 0;
+ 221   2            SCON2 = 0x02;           //8位UART，波特率可变
+ 222   2            SCON = 0x10;            //允许串行接收
+ 223   2            IE |= 0x10;             //使能串口中断  
+ 224   2          
+ 225   2          }
+ 226   1      }
+ 227          
+ 228          void uart1_data(void)         //接收函数
+ 229          {
+ 230   1      if(f1_wifi_num)//快闪&&慢闪&&测试wifi
+ 231   1      {
+ 232   2      //  SCON &= ~0x10;      //关闭串行接收
+ 233   2        if(f1_wifi_num==1)//快闪
+ 234   2        {
+ 235   3          for(guc_i= 0;guc_i<8;guc_i++)
+ 236   3          {
+ 237   4            SBUF = Buff6[guc_i];//发送8位串口数据
+ 238   4            while(!(SCON & 0x02));
+ 239   4            SCON &=~ 0x02;      //清除发送中断标志位
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 5   
+
+ 240   4          }
+ 241   3        }
+ 242   2        else if(f1_wifi_num==2)//慢闪
+ 243   2        {
+ 244   3          for(guc_i= 0;guc_i<8;guc_i++)
+ 245   3          {
+ 246   4            SBUF = Buff7[guc_i];//发送8位串口数据
+ 247   4            while(!(SCON & 0x02));
+ 248   4            SCON &=~ 0x02;      //清除发送中断标志位
+ 249   4          }
+ 250   3        }
+ 251   2        else if(f1_wifi_num ==3)//测试wifi
+ 252   2        {
+ 253   3          for(guc_i= 0;guc_i<7;guc_i++)
+ 254   3          {
+ 255   4            SBUF = Buff8[guc_i];//发送8位串口数据
+ 256   4            while(!(SCON & 0x02));
+ 257   4            SCON &=~ 0x02;      //清除发送中断标志位
+ 258   4          }
+ 259   3        }
+ 260   2        SCON |= 0x10;      //允许串行接收
+ 261   2        f1_wifi_num=0;    
+ 262   2      } 
+ 263   1      
+ 264   1      
+ 265   1        
+ 266   1      if(guc_Uartflag)//接收完成标志
+ 267   1      {
+ 268   2        
+ 269   2        IE &=~ 0x10;        //失能UART1中断
+ 270   2        if(guc_Uartbuf_a[0]==0x55)
+ 271   2        {
+ 272   3          if(guc_Uartbuf_a[2]==0&&guc_Uartbuf_a[3]==0)//心跳检测
+ 273   3          {
+ 274   4            wifi_num_flag=0;
+ 275   4            if(wifi_first==0)
+ 276   4            {
+ 277   5              wifi_first=1;
+ 278   5              for(guc_i= 0;guc_i<8;guc_i++)
+ 279   5              {
+ 280   6                SBUF = Buff1[guc_i];//发送8位串口数据
+ 281   6                while(!(SCON & 0x02));
+ 282   6                SCON &=~ 0x02;      //清除发送中断标志位
+ 283   6              }
+ 284   5            }       
+ 285   4            else
+ 286   4            {
+ 287   5              for(guc_i= 0;guc_i<8;guc_i++)
+ 288   5              {
+ 289   6                SBUF = Buff2[guc_i];//发送8位串口数据
+ 290   6                while(!(SCON & 0x02));
+ 291   6                SCON &=~ 0x02;      //清除发送中断标志位
+ 292   6              }
+ 293   5            } 
+ 294   4          }
+ 295   3          if(guc_Uartbuf_a[2]==0&&guc_Uartbuf_a[3]==1)//查询产品信息
+ 296   3          {
+ 297   4            for(guc_i= 0;guc_i<49;guc_i++)
+ 298   4            {
+ 299   5              SBUF = Buff3[guc_i];//发送8位串口数据
+ 300   5              while(!(SCON & 0x02));
+ 301   5              SCON &=~ 0x02;      //清除发送中断标志位
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 6   
+
+ 302   5            }
+ 303   4          }
+ 304   3          if(guc_Uartbuf_a[2]==0&&guc_Uartbuf_a[3]==2)//查询 MCU 设定模块工作方式
+ 305   3          {
+ 306   4            for(guc_i= 0;guc_i<7;guc_i++)
+ 307   4            {
+ 308   5              SBUF = Buff4[guc_i];//发送8位串口数据
+ 309   5              while(!(SCON & 0x02));
+ 310   5              SCON &=~ 0x02;      //清除发送中断标志位
+ 311   5            }
+ 312   4          }
+ 313   3          if(guc_Uartbuf_a[2]==0&&guc_Uartbuf_a[3]==3)//报告 WiFi 工作状态
+ 314   3          {
+ 315   4            for(guc_i= 0;guc_i<7;guc_i++)
+ 316   4            {
+ 317   5              SBUF = Buff5[guc_i];//发送8位串口数据
+ 318   5              while(!(SCON & 0x02));
+ 319   5              SCON &=~ 0x02;      //清除发送中断标志位
+ 320   5            }
+ 321   4          }
+ 322   3          if(guc_Uartbuf_a[2]==0&&(guc_Uartbuf_a[3]==8||guc_Uartbuf_a[3]==3))//查询 mcu 工作状态
+ 323   3          {
+ 324   4            f2_wifi_num=900;//发送指令; //查询 mcu 工作状态
+ 325   4          }
+ 326   3          if(guc_Uartbuf_a[3]==0x0e&&guc_Uartbuf_a[5]==2)//自检模式测试wifi
+ 327   3          {
+ 328   4            ZJ_wifi_flag=1;//自检模式下测试wifi
+ 329   4          }
+ 330   3          
+ 331   3          
+ 332   3          
+ 333   3          
+ 334   3          
+ 335   3        //清扫开关&&方向
+ 336   3          if(guc_Uartbuf_a[3]==6)
+ 337   3          {
+ 338   4            f2_wifi_num=900;//发送指令
+ 339   4            if(guc_Uartbuf_a[6]==2&&guc_Uartbuf_a[10]==1) //清扫开关,打开
+ 340   4            {
+ 341   5              f2_mode=1;
+ 342   5              f3_flag0 = 1;
+ 343   5              BUZZER_num=30;//蜂鸣器鸣叫时间
+ 344   5              BUZZER_flag=1;//开启蜂鸣器
+ 345   5            }
+ 346   4            if(guc_Uartbuf_a[6]==3&&guc_Uartbuf_a[10]==1) //自动模式
+ 347   4            {
+ 348   5              if(f2_mode==0)
+ 349   5              {
+ 350   6                f2_mode=1;
+ 351   6                f3_flag0 = 1;   
+ 352   6              }
+ 353   5              else
+ 354   5              {
+ 355   6                f2_mode=0;
+ 356   6                f3_flag = -1;
+ 357   6                f3_flag1=0;
+ 358   6              }
+ 359   5              BUZZER_num=30;//蜂鸣器鸣叫时间
+ 360   5              BUZZER_flag=1;//开启蜂鸣器
+ 361   5            }
+ 362   4          ///***********************重点清扫*******************************/          
+ 363   4              if(guc_Uartbuf_a[6]==3&&guc_Uartbuf_a[10]==2) //重点清扫
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 7   
+
+ 364   4              {
+ 365   5                if(f2_mode==0)
+ 366   5                {
+ 367   6                  f2_mode=10;//重点清扫
+ 368   6                  f3_flag0 = 1;   
+ 369   6                }
+ 370   5                else
+ 371   5                {
+ 372   6                  f2_mode=0;
+ 373   6                  f3_flag = -1;
+ 374   6                  f3_flag1=0;
+ 375   6                }
+ 376   5                
+ 377   5                BUZZER_num=30;//蜂鸣器鸣叫时间
+ 378   5                BUZZER_flag=1;//开启蜂鸣器
+ 379   5              } 
+ 380   4            if(guc_Uartbuf_a[6]==3&&guc_Uartbuf_a[10]==0) //待机
+ 381   4              {
+ 382   5                f2_mode=0;
+ 383   5                f3_flag = -1;
+ 384   5                f3_flag1=0;
+ 385   5                BUZZER_num=30;//蜂鸣器鸣叫时间
+ 386   5                BUZZER_flag=1;//开启蜂鸣器
+ 387   5              }
+ 388   4            if(guc_Uartbuf_a[6]==2&&guc_Uartbuf_a[10]==0) //清扫开关,关闭
+ 389   4            {
+ 390   5              f2_mode=0;
+ 391   5              f3_flag = -1;
+ 392   5              f3_flag1=0;
+ 393   5              BUZZER_num=30;//蜂鸣器鸣叫时间
+ 394   5              BUZZER_flag=1;//开启蜂鸣器
+ 395   5            }
+ 396   4            if(guc_Uartbuf_a[6]==4&&guc_Uartbuf_a[10]==0) //前进
+ 397   4              {
+ 398   5                f1_fj_num=0;
+ 399   5                if(f2_mode==1)
+ 400   5                  f1_wifi_mode=1;
+ 401   5                else
+ 402   5                  f2_mode=0;
+ 403   5                f2_mode=7;
+ 404   5                f3_flag = 220;
+ 405   5                f3_flag1=0;
+ 406   5                
+ 407   5              }
+ 408   4              if(guc_Uartbuf_a[6]==4&&guc_Uartbuf_a[10]==1) //后退
+ 409   4              {
+ 410   5                f1_fj_num=0;
+ 411   5                if(f2_mode==1)
+ 412   5                  f1_wifi_mode=1;
+ 413   5                else
+ 414   5                  f2_mode=0;
+ 415   5                f2_mode=7;
+ 416   5                f3_flag = 221;
+ 417   5                f3_flag1=0;
+ 418   5                
+ 419   5              }
+ 420   4              if(guc_Uartbuf_a[6]==4&&guc_Uartbuf_a[10]==2) //左
+ 421   4              {
+ 422   5                f1_fj_num=0;
+ 423   5                if(f2_mode==1)
+ 424   5                  f1_wifi_mode=1;
+ 425   5                else
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 8   
+
+ 426   5                  f2_mode=0;
+ 427   5                f2_mode=7;
+ 428   5                f3_flag = 222;
+ 429   5                f3_flag1=0;
+ 430   5                
+ 431   5              }
+ 432   4              if(guc_Uartbuf_a[6]==4&&guc_Uartbuf_a[10]==3) //右
+ 433   4              {
+ 434   5                f1_fj_num=0;
+ 435   5                if(f2_mode==1)
+ 436   5                  f1_wifi_mode=1;
+ 437   5                else
+ 438   5                  f2_mode=0;
+ 439   5                f2_mode=7;
+ 440   5                f3_flag = 223;
+ 441   5                f3_flag1=0;
+ 442   5                
+ 443   5              }
+ 444   4              if(guc_Uartbuf_a[6]==4&&guc_Uartbuf_a[10]==4) //停止
+ 445   4              {
+ 446   5                if(f1_wifi_mode==1)//运动中使用按键，松开时候继续运动
+ 447   5                {
+ 448   6                  f1_fj_num=0;
+ 449   6                  reset_pwm();
+ 450   6                  f1_wifi_mode=0;
+ 451   6                  f2_mode=1;
+ 452   6                  f3_flag0 = 1;   
+ 453   6                  Brush=1;//边刷
+ 454   6      //            fan=1;//风机
+ 455   6                  fan_open = 1;//风机开启1,关闭0
+ 456   6                }
+ 457   5                else//静止中使用按键，松开时候停止运动
+ 458   5                {
+ 459   6                  f1_fj_num=0;
+ 460   6                  Brush=0;//边刷
+ 461   6                  fan=0;//风机
+ 462   6                  fan_open = 0;//风机开启1,关闭0
+ 463   6                  f2_mode=0;
+ 464   6                  f3_flag = -1;
+ 465   6                  f3_flag1=0;
+ 466   6                }
+ 467   5                
+ 468   5                
+ 469   5              }
+ 470   4              if(guc_Uartbuf_a[6]==13&&guc_Uartbuf_a[10]==1)//寻找机器
+ 471   4              {
+ 472   5                for(guc_i= 0;guc_i<12;guc_i++)
+ 473   5                {
+ 474   6                  SBUF = Buff11[guc_i];//发送8位串口数据
+ 475   6                  while(!(SCON & 0x02));
+ 476   6                  SCON &=~ 0x02;      //清除发送中断标志位
+ 477   6                } 
+ 478   5                BUZZER_num=200;//蜂鸣器鸣叫时间
+ 479   5                BUZZER_flag=1;//开启蜂鸣器
+ 480   5              }
+ 481   4              
+ 482   4              if(guc_Uartbuf_a[6]==14&&guc_Uartbuf_a[7]==4)//吸力选择
+ 483   4              {
+ 484   5                Buff12[10]=guc_Uartbuf_a[10];
+ 485   5                f1_fj_xili =Buff12[10];//风机吸力
+ 486   5                Buff12[11]=33+guc_Uartbuf_a[10];
+ 487   5                for(guc_i= 0;guc_i<12;guc_i++)
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 9   
+
+ 488   5                {
+ 489   6                  SBUF = Buff12[guc_i];//发送8位串口数据
+ 490   6                  while(!(SCON & 0x02));
+ 491   6                  SCON &=~ 0x02;      //清除发送中断标志位
+ 492   6                } 
+ 493   5              
+ 494   5                BUZZER_num=30;//蜂鸣器鸣叫时间
+ 495   5                BUZZER_flag=1;//开启蜂鸣器
+ 496   5              }
+ 497   4          } 
+ 498   3        }
+ 499   2        
+ 500   2        
+ 501   2        
+ 502   2      //  for(guc_i= 0;guc_i<guc_Uartcnt;guc_i++)
+ 503   2      //  {
+ 504   2      //    SBUF = guc_Uartbuf_a[guc_i];//发送8位串口数据
+ 505   2      //    while(!(SCON & 0x02));
+ 506   2      //    SCON &=~ 0x02;      //清除发送中断标志位
+ 507   2      //  }
+ 508   2        IE |= 0x10;         //UART1中断使能
+ 509   2        guc_Uartflag = 0;   //接收完成标志
+ 510   2        guc_Uartcnt = 0;    //接收数据长度
+ 511   2        SCON |= 0x10;       //UART1接收使能
+ 512   2      } 
+ 513   1      
+ 514   1      
+ 515   1      
+ 516   1        f1_wifi_i1 = 0;//5条DP指令
+ 517   1          if(f2_wifi_num >1000)
+ 518   1          {
+ 519   2            f2_wifi_num=0;
+ 520   2            f1_wifi_i2 = 0;//DP具体指令
+ 521   2            IE &=~ 0x10;        //失能UART1中断
+ 522   2            for(f1_wifi_i1=0;f1_wifi_i1<5;f1_wifi_i1++)//5条DP指令
+ 523   2            {
+ 524   3              for(f1_wifi_i2=0;f1_wifi_i2<12;f1_wifi_i2++)////DP具体指令
+ 525   3              {
+ 526   4                if(f1_wifi_i2<10)
+ 527   4                  Buff[f1_wifi_i2]=Buff10[f1_wifi_i1][f1_wifi_i2];
+ 528   4                else
+ 529   4                {
+ 530   5                  if(f1_wifi_i2==10)//功能指令
+ 531   5                  {
+ 532   6                    if(f1_wifi_i1==0)//清扫开关
+ 533   6                    {
+ 534   7                      if(f2_mode==1||f2_mode==2||f2_mode==10)//1弓形，2回冲，10定点 
+ 535   7                        Buff[f1_wifi_i2] = 1;
+ 536   7                      else
+ 537   7                        Buff[f1_wifi_i2] = 0;
+ 538   7                      f1_wifi_i2++;
+ 539   7                      Buff[f1_wifi_i2] = Buff10[f1_wifi_i1][f1_wifi_i2]+Buff[f1_wifi_i2-1];
+ 540   7                      for(guc_i= 0;guc_i<12;guc_i++)//报告 WiFi 工作状态
+ 541   7                      {
+ 542   8                        SBUF = Buff[guc_i];//发送8位串口数据
+ 543   8                        while(!(SCON & 0x02));
+ 544   8                        SCON &=~ 0x02;      //清除发送中断标志位
+ 545   8                      }
+ 546   7                      
+ 547   7                      
+ 548   7                    }       
+ 549   6                    if(f1_wifi_i1==1)//工作模式
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 10  
+
+ 550   6                    {
+ 551   7                      if(f2_mode==1)//1弓形
+ 552   7                        Buff[f1_wifi_i2] = 1;
+ 553   7                      else if (f2_mode==10)//10定点
+ 554   7                        Buff[f1_wifi_i2] = 2;
+ 555   7                      else
+ 556   7                        Buff[f1_wifi_i2] = 0;
+ 557   7                      f1_wifi_i2++;
+ 558   7                      Buff[f1_wifi_i2] = Buff10[f1_wifi_i1][f1_wifi_i2]+Buff[f1_wifi_i2-1];
+ 559   7                      for(guc_i= 0;guc_i<12;guc_i++)//报告 WiFi 工作状态
+ 560   7                      {
+ 561   8                        SBUF = Buff[guc_i];//发送8位串口数据
+ 562   8                        while(!(SCON & 0x02));
+ 563   8                        SCON &=~ 0x02;      //清除发送中断标志位
+ 564   8                      }
+ 565   7                      
+ 566   7                    }             
+ 567   6                    
+ 568   6                    if(f1_wifi_i1==2)//工作状态
+ 569   6                    {
+ 570   7                      if(f2_mode==1)//1弓形
+ 571   7                        Buff[f1_wifi_i2] = 1;
+ 572   7                      else if (f2_mode==10)//10定点
+ 573   7                        Buff[f1_wifi_i2] = 2;
+ 574   7                      else if(f2_mode==3)//充电
+ 575   7                      {
+ 576   8                        if(f2_chongdian_flag1<100)//充电红跳绿
+ 577   8                          Buff[f1_wifi_i2] = 3;
+ 578   8                        else
+ 579   8                          Buff[f1_wifi_i2] = 4;
+ 580   8                      }                               
+ 581   7                      else
+ 582   7                        Buff[f1_wifi_i2] = 0;
+ 583   7                      
+ 584   7                      f1_wifi_i2++;
+ 585   7                      Buff[f1_wifi_i2] = Buff10[f1_wifi_i1][f1_wifi_i2]+Buff[f1_wifi_i2-1];
+ 586   7                      for(guc_i= 0;guc_i<12;guc_i++)//报告 WiFi 工作状态
+ 587   7                      {
+ 588   8                        SBUF = Buff[guc_i];//发送8位串口数据
+ 589   8                        while(!(SCON & 0x02));
+ 590   8                        SCON &=~ 0x02;      //清除发送中断标志位
+ 591   8                      }
+ 592   7                      
+ 593   7                    }
+ 594   6                    if(f1_wifi_i1==3)//电量
+ 595   6                    {
+ 596   7                      
+ 597   7                      Buff13[13]= f2_dianliang_wifi;
+ 598   7                      Buff13[14]= f2_dianliang_wifi+29;
+ 599   7                      f1_wifi_i2++;
+ 600   7                      for(guc_i= 0;guc_i<15;guc_i++)//报告 WiFi 工作状态
+ 601   7                      {
+ 602   8                        SBUF = Buff13[guc_i];//发送8位串口数据
+ 603   8                        while(!(SCON & 0x02));
+ 604   8                        SCON &=~ 0x02;      //清除发送中断标志位
+ 605   8                      }
+ 606   7                      
+ 607   7      //                Buff[f1_wifi_i2] = f2_dianliang_wifi;
+ 608   7      //                f1_wifi_i2++;
+ 609   7      //                Buff[f1_wifi_i2] = Buff10[f1_wifi_i1][f1_wifi_i2]+Buff[f1_wifi_i2-1];
+ 610   7      //                for(guc_i= 0;guc_i<12;guc_i++)//报告 WiFi 工作状态
+ 611   7      //                {
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 11  
+
+ 612   7      //                  SBUF = Buff[guc_i];//发送8位串口数据
+ 613   7      //                  while(!(SCON & 0x02));
+ 614   7      //                  SCON &=~ 0x02;      //清除发送中断标志位
+ 615   7      //                }
+ 616   7      //                
+ 617   7      //                
+ 618   7      //                
+ 619   7      //Buff13[15] = {0x55,0xaa,0x03,0x07,0x00,0x08,0x06,0x02,0x00,0x04,0x00,0x00,0x00,0x00,0x1D};//剩余电流
+ 620   7      
+ 621   7                      
+ 622   7                      
+ 623   7                      
+ 624   7      //                if(f1_wifi_i2<10)
+ 625   7      //                  Buff[f1_wifi_i2]=Buff10[f1_wifi_i1][f1_wifi_i2];
+ 626   7      //                Buff13[10] =  f2_dianliang_wifi;
+ 627   7      //                Buff13[11] =  f2_dianliang_wifi+29;
+ 628   7      //                for(guc_i= 0;guc_i<12;guc_i++)//报告 WiFi 工作状态
+ 629   7      //                {
+ 630   7      //                  SBUF = Buff13[guc_i];//发送8位串口数据
+ 631   7      //                  while(!(SCON & 0x02));
+ 632   7      //                  SCON &=~ 0x02;      //清除发送中断标志位
+ 633   7      //                }
+ 634   7                    }
+ 635   6                    if(f1_wifi_i1==4)//故障警告
+ 636   6                    {
+ 637   7                      if(error_flag==1)//1碰撞
+ 638   7                        Buff[f1_wifi_i2] = 8;
+ 639   7                      else if (error_flag==2)//2悬空
+ 640   7                        Buff[f1_wifi_i2] = 16;
+ 641   7                      else if (error_flag==3)//3边刷
+ 642   7                        Buff[f1_wifi_i2] = 4;
+ 643   7                      else if (error_flag==4)//4风机
+ 644   7                        Buff[f1_wifi_i2] = 64;
+ 645   7                      else if (error_flag==5)//5左轮
+ 646   7                        Buff[f1_wifi_i2] = 1;
+ 647   7                      else if (error_flag==6)//6右轮
+ 648   7                        Buff[f1_wifi_i2] = 2;
+ 649   7                      else if (error_flag==7)//7电池电量
+ 650   7                        Buff[f1_wifi_i2] = 32;
+ 651   7                      else
+ 652   7                        Buff[f1_wifi_i2] = 0;
+ 653   7                      f1_wifi_i2++;
+ 654   7                      Buff[f1_wifi_i2] = Buff10[f1_wifi_i1][f1_wifi_i2]+Buff[f1_wifi_i2-1];
+ 655   7                      for(guc_i= 0;guc_i<12;guc_i++)//报告 WiFi 工作状态
+ 656   7                      {
+ 657   8                        SBUF = Buff[guc_i];//发送8位串口数据
+ 658   8                        while(!(SCON & 0x02));
+ 659   8                        SCON &=~ 0x02;      //清除发送中断标志位
+ 660   8                      }
+ 661   7                    }
+ 662   6                  }
+ 663   5                }
+ 664   4      
+ 665   4              }
+ 666   3            }
+ 667   2        IE |= 0x10;         //UART1中断使能
+ 668   2        guc_Uartflag = 0;
+ 669   2        guc_Uartcnt = 0;
+ 670   2        SCON |= 0x10;       //UART1接收使能
+ 671   2          } 
+ 672   1      }
+ 673          
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 12  
+
+ 674          
+ 675          
+ 676          /***************************************************************************************
+ 677            * @说明   UART1中断服务函数
+ 678            * @参数 无
+ 679            * @返回值 无
+ 680            * @注   无
+ 681          ***************************************************************************************/
+ 682          
+ 683          void UART1_Rpt(void) interrupt UART1_VECTOR
+ 684          {
+ 685   1        if(SCON & 0x01)           //判断接收中断标志位
+ 686   1        {
+ 687   2          if((guc_Uartcnt==0&&SBUF==85&&guc_Uartcnt<12)||(guc_Uartcnt!=0&&guc_Uartbuf_a[0]==85&&guc_Uartcnt<12))
+ 688   2          {
+ 689   3            guc_Uartbuf_a[guc_Uartcnt++] = SBUF;//转存8位串口接收数据
+ 690   3            if(guc_Uartcnt == 7&& (guc_Uartbuf_a[3]<=2 ||guc_Uartbuf_a[3]==8))
+ 691   3            {
+ 692   4                SCON &=~ 0x10;        //失能UART1接收     
+ 693   4                guc_Uartflag = 1;
+ 694   4            }
+ 695   3            if(guc_Uartcnt == 8&&guc_Uartbuf_a[3]==3)
+ 696   3            {
+ 697   4                SCON &=~ 0x10;        //失能UART1接收     
+ 698   4                guc_Uartflag = 1;
+ 699   4            }
+ 700   3            if(guc_Uartcnt == 9&&guc_Uartbuf_a[3]==14)//WiFi测试
+ 701   3            {
+ 702   4                SCON &=~ 0x10;        //失能UART1接收     
+ 703   4                guc_Uartflag = 1;
+ 704   4            }
+ 705   3            if(guc_Uartcnt == 12)
+ 706   3            {
+ 707   4                SCON &=~ 0x10;        //失能UART1接收     
+ 708   4                guc_Uartflag = 1;
+ 709   4            }
+ 710   3            SCON &=~ 0x01;          //清除接收中断标志位  
+ 711   3          }
+ 712   2          if((guc_Uartcnt!=0&&SBUF == 85))
+ 713   2          {
+ 714   3            guc_Uartbuf_a[0] = SBUF;//转存8位串口接收数据
+ 715   3            guc_Uartcnt =1;
+ 716   3          }
+ 717   2          if(guc_Uartcnt==12)
+ 718   2            guc_Uartcnt=0;
+ 719   2        }             
+ 720   1      }
+ 721          
+ 722          
+ 723          
+ 724          
+ 725          
+ 726          
+ 727          
+ 728          
+ 729          
+ 730          
+ 731          
+ 732          
+ 733          
+ 734          
+ 735          
+C51 COMPILER V9.60.0.0   TASK1                                                             02/22/2021 15:08:09 PAGE 13  
+
+ 736          
+ 737          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2465    ----
+   CONSTANT SIZE    =    174    ----
+   XDATA SIZE       =     70    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

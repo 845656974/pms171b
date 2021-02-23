@@ -1,0 +1,72 @@
+R1_touch		ÓÒ´¥Ãþ					-> P1.4(1)
+L1_touch		ÓÒ´¥Ãþ					-> P1.3(2)
+PWM1D			×óÂÖºóÍËPWM				-> P1.2(3)
+PWM1DT			×óÂÖÇ°½øPWM				-> P1.1(4)
+crash			Åö×²					-> P1.0(5)
+buzzer			·äÃùÆ÷					-> P3.2(6)
+R_led			ºìLED					-> P3.1(7)
+G_led			ÂÌLED					-> P3.0(8)
+
+
+Wifi			WifiÊ¹ÄÜ				-> P0.7(9)
+mapan			5VÊ¹ÄÜ(´ý»úÊ±¿ÉÒÔ¹Ø±Õ)	-> P0.6(10)
+ADC_5(SCR5)		×óµØ¼ìADC				-> P0.4(12)
+ADC_6(SCR6)		ÖÐµØ¼ìADC				-> P0.3(13)			
+ADC_7(SCR7)		ÓÒµØ¼ìADC				-> P0.2(14)	
+ADC_1(SCR1)		×óÂÖADC					-> P0.1(15)	
+ADC_0(SCR0)		ÓÒÂÖADC					-> P0.0(16)	
+
+
+ADC_2(SCR2)		·ç»úADC					-> P2.7(17)	
+ADC_4(SCR4)		µçÔ´ADC					-> P2.6(18)	
+ADC_3(SCR3)		±ßË¢ADC					-> P2.5(19)	
+P2INT_VECTOR	×óÂÖ±àÂëÆ÷(P2ÖÐ¶Ï)		-> P2.4(22)	
+INT8_17_VECTOR	ÓÒÂÖ±àÂëÆ÷(INT17ÖÐ¶Ï)	-> P3.5(23)	
+power			³äµç²åÈë¼ì²â			-> P3.4(24)		
+
+
+Brush			±ßË¢Ê¹ÄÜ				-> P3.3(25)
+PWM0D			×óÂÖÇ°½øPWM				-> P2.3(26)
+PWM0DT			×óÂÖºóÍËPWM				-> P2.2(27)
+floor			µØ¼ìÊ¹ÄÜ				-> P2.1(28)
+power_enabled	³äµç¼ì²â				-> P2.0(29)
+RXD				UART´®¿Ú¶Á				-> P1.7(30)
+TXD				UART´®¿ÚÐ´				-> P1.6(31)
+fan				·ç»úPWM					-> P1.5(32)
+
+
+°´¼ü
+R1_touch		ÓÒ´¥Ãþ					-> P1.4(1)
+L1_touch		ÓÒ´¥Ãþ					-> P1.3(2)
+
+LED
+R_led			ºìLED					-> P3.1(7)
+G_led			ÂÌLED					-> P3.0(8)
+
+PWM
+PWM1D			×óÂÖºóÍËPWM				-> P1.2(3)
+PWM1DT			×óÂÖÇ°½øPWM				-> P1.1(4)
+PWM0D			×óÂÖÇ°½øPWM				-> P2.3(26)
+PWM0DT			×óÂÖºóÍËPWM				-> P2.2(27)
+fan(PWM2D)		·ç»úPWM					-> P1.5(32)
+
+³äµç¼ì²â(³äµçIC)
+power			³äµç²åÈë¼ì²â			-> P3.4(24)	
+power_enabled	³äµç¼ì²â				-> P2.0(29)
+
+´®¿Ú(9600)
+RXD				UART´®¿Ú¶Á				-> P1.7(30)
+TXD				UART´®¿ÚÐ´				-> P1.6(31)
+
+ADC
+ADC_0(SCR0)	ÓÒÂÖADC					-> P0.0(16)	
+ADC_1(SCR1)	×óÂÖADC					-> P0.1(15)	
+ADC_2(SCR2)	·ç»úADC					-> P2.7(17)	
+ADC_3(SCR3)	±ßË¢ADC					-> P2.5(19)	
+ADC_4(SCR4)	µçÔ´ADC					-> P2.6(18)		
+ADC_5(SCR5)	×óµØ¼ìADC				-> P0.4(12)			
+ADC_6(SCR6)	ÖÐµØ¼ìADC				-> P0.3(13)
+ADC_7(SCR7)	ÓÒµØ¼ìADC				-> P0.2(14)
+
+
+

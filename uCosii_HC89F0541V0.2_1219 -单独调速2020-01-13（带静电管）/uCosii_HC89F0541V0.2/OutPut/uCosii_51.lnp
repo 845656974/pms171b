@@ -1,0 +1,21 @@
+".\OutPut\main.obj",
+".\OutPut\task1.obj",
+".\OutPut\task2.obj",
+".\OutPut\task3.obj",
+".\OutPut\os_core.obj",
+".\OutPut\os_flag.obj",
+".\OutPut\os_mbox.obj",
+".\OutPut\os_mem.obj",
+".\OutPut\os_mutex.obj",
+".\OutPut\os_q.obj",
+".\OutPut\os_sem.obj",
+".\OutPut\os_task.obj",
+".\OutPut\os_time.obj",
+".\OutPut\os_tmr.obj",
+".\OutPut\STARTUP.obj",
+".\OutPut\os_cpu_c.obj",
+".\OutPut\os_cpu_a.obj" 
+TO ".\OutPut\uCosii_51" 
+PRINT(".\OutPut\uCosii_51.m51") RAMSIZE(256) 
+CODE( 0X0000-0X7FFF )
+XDATA( 0X0000-0X03FF )
